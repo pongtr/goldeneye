@@ -47,13 +47,13 @@ def gather_min_max_per_layer(model, data_iter, batch_size, precision="FP16", cud
 
         min_vals = (
             torch.Tensor(list(map(lambda layer: layer.min().item(), activations)))
-            .cuda()
-            .half()
+            # .cuda()
+            # .half()
         )
         max_vals = (
             torch.Tensor(list(map(lambda layer: layer.max().item(), activations)))
-            .cuda()
-            .half()
+            # .cuda()
+            # .half()
         )
         if batch_num == 0:
             layer_max = max_vals
@@ -64,7 +64,7 @@ def gather_min_max_per_layer(model, data_iter, batch_size, precision="FP16", cud
 
         processed_elements += len(labels)
         batch_num += 1
-        torch.cuda.empty_cache()
+        # torch.cuda.empty_cache()
 
     # remove hooks
     for i in range(len(handles)):

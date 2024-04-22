@@ -61,7 +61,8 @@ if __name__ == '__main__':
                               bits=bitwidth_fp,
                               radix_up=exp_bits,
                               radix_down=mantissa_bits,
-                              bias=getBias()),
+                              bias=getBias(),
+                              n_blocks=getNblocks()),
 
         # quantization
         quant=quant_en,

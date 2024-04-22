@@ -2,7 +2,7 @@ import os
 import random
 import torch
 from torch.utils.cpp_extension import load
-from qtorch.quant import float_quantize, fixed_point_quantize, block_quantize
+# from qtorch.quant import float_quantize, fixed_point_quantize, block_quantize
 
 # import C++ code
 current_path = os.path.dirname(os.path.realpath(__file__))
@@ -568,3 +568,84 @@ class adaptive_float(_ieee754):
 
         # Python
         # return self.quantize_adaptivfloat_meta_py(float_arr, n_bits, n_exp, bias)
+
+class mx_float(_ieee754):
+    """MX FLoat Number System"""
+    def __init__(self, bit_width=32, exp_len=8, mant_len=23, n_blocks=4):
+        super().__init__(exp_len=exp_len, mant_len=mant_len)
+        self.bit_width = bit_width
+        self.n_blocks = n_blocks
+    
+    def real_to_format_tensor(self, tensor):
+        return self.quantize_mx_float(tensor)
+        
+    def real_to_format_tensor_meta(self, tensor):
+        return self.quantize_mx_float(tensor, flip_meta=True)
+        
+    def quantize_mx_float(self, tensor, flip_meta=False):
+        tensor_shape = tensor.shape
+
+        # Flatten tensor so we can iterate through each element        
+        tensor_flattened = tensor.flatten()
+        
+        # Get sign
+        sign = torch.sign(tensor_flattened)
+        float_arr = torch.abs(tensor_flattened)
+        
+        # Extract mantissa and exponent
+        mant0, exp0 = torch.frexp(float_arr)
+        
+         # Calculate new mantissa
+        mant_increment = 2 ** (-self.mant_len)
+        mant0 = 2 * mant0 # IEEE mantissa implicit leading 1
+        mant = ((mant0 / mant_increment).floor()) * mant_increment
+        
+        # Get constants
+        exp_bias = 2. ** (self.exp_len - 1) - 1
+        max_mant = 2. - 2. ** (-self.mant_len)
+        max_exp = 2. ** self.exp_len - 2 - exp_bias
+        max_value = (2. ** max_exp) * max_mant
+        
+        # Initialize new scale and exponent tensors
+        exp = torch.zeros(float_arr.shape)
+        scale = torch.zeros(float_arr.shape)
+        
+        # iterate through scaling blocks to calculate scale and exponent
+        for i in range(0, len(float_arr), self.n_blocks): 
+            # get block of float to process
+            float_block = float_arr[i:i+self.n_blocks]
+            
+            # (max exp in block) - (offset for range of element) - (IEEE mant leading 1)
+            shared_exp = torch.frexp(float_block.max())[1] - max_exp - 1
+            scale_factor = 2. ** shared_exp
+                                
+            # Flip a bit in the shared_exp
+            # ============= ERROR INJECTION INTO META =============
+            if flip_meta:
+                # TODO: also have to select which scaling block to flip
+                pass
+            # ============= ERROR INJECTION INTO META =============
+            
+            # Iterate through each value and populate
+            for j in range(i, i+self.n_blocks, 1):
+                quantized_value = float_arr[j] / scale_factor
+                exp[j] = exp0[j] - shared_exp - 1
+                if exp[j] < -exp_bias: # set subnormal values to zero
+                    exp[j] = 0
+                    mant[j] = 0
+                elif quantized_value > max_value: # clamp larger values
+                    exp[j] = max_exp
+                    mant[j] = max_mant
+                    
+                # Store scale like this for easy multiplication
+                # Actual implementation only stores scale once per block
+                scale[j] = shared_exp 
+        
+            
+        float_out = sign * mant * (2 ** (scale + exp))
+        
+        # Reconstruct the tensor
+        tensor_reconstructed = float_out.view(tensor_shape)
+        
+        return tensor_reconstructed
+                        

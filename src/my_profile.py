@@ -25,8 +25,9 @@ def gather_golden(goldeneye, data_iter, cuda_en=True, precision='FP32', verbose=
         images, labels, img_ids, index = input_data
         if precision == 'FP16': images = images.half()
         if cuda_en:
-            images = images.cuda()
-            labels = labels.cuda()
+            # images = images.cuda()
+            # labels = labels.cuda()
+            pass
 
         with torch.no_grad():
             output = inf_model(images) # run an inference
@@ -128,7 +129,6 @@ if __name__ == '__main__':
         baseH = 32
         baseW = 32
 
-
     goldeneye_model = goldeneye(
         model,
         getBatchsize(),
@@ -142,7 +142,8 @@ if __name__ == '__main__':
                               bits=bitwidth_fp,
                               radix_up=exp_bits,
                               radix_down=mantissa_bits,
-                              bias=getBias()),
+                              bias=getBias(),
+                              n_blocks=getNblocks()),
 
         # quantization
         quant=quant_en,

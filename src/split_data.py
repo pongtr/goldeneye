@@ -41,7 +41,7 @@ if __name__ == '__main__':
     split_ratio = .8
     
     # generate an Analysis Set (AS) and Deployment Set (DS)
-    if "IMAGENET" in getDataset():  images_base = list(range(0,50000))
+    if "IMAGENET" in getDataset():  images_base = list(range(0,10000)) # originally up to 50000
     elif "CIFAR" in getDataset():   images_base = list(range(0,10000))
     
     random.seed(9001)
@@ -55,11 +55,11 @@ if __name__ == '__main__':
     ASgoodImgs = []
     DSgoodImgs = []
     for i in analysis_set:
-        if golden_data[i][0] == golden_data[i][1] and golden_data[i][3] > 0 :
+        if golden_data[i][0] == golden_data[i][1] and golden_data[i][3] > 0:
             ASgoodImgs.append(i)
 
     for i in deployment_set:
-        if golden_data[i][0] == golden_data[i][1] and golden_data[i][3] > 0 :
+        if golden_data[i][0] == golden_data[i][1] and golden_data[i][3] > 0:
             DSgoodImgs.append(i)
 
     save_data(outPath, "rank_set_good", ASgoodImgs)

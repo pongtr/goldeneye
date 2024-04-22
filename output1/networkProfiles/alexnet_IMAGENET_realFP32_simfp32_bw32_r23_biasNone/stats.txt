@@ -1,0 +1,7 @@
+===========================================
+alexnet_IMAGENET_realFP32_simfp32_bw32_r23_biasNone
+Accuracy: 	0.02%
+Ave Loss: 	10.82
+Ave Conf: 	32.71%
+Ave Top2Diff: 	21.05%
+===========================================

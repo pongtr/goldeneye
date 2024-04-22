@@ -1,18 +1,20 @@
 #!/bin/bash
 #set -x
 
-NETWORK=${1}
+NETWORK=${1} # IMAGE /alexnetNET
 BATCH=${2} #128
 FORMAT=${3}    # simulated format
 BITWIDTH=${4}
 RADIX=${5}
+NBLOCKS=${7}
+CUDA="False"
 
-DATASET="IMAGENET"
+DATASET="CIFAR10" # IMAGENET / CIFAR10 / CIFAR100
 OUTPUT_PATH="../output/"
 SRC_PATH="../src/"
 LOG_PATH="./log/"
 SCRIPT1="../src/preprocess.py"
-SCRIPT2="../src/profile.py"
+SCRIPT2="../src/my_profile.py"
 SCRIPT3="../src/split_data.py"
 SCRIPT4="../src/injections.py"
 SCRIPT5="../src/postprocess.py"
@@ -23,7 +25,7 @@ PRECISION="FP32" # compute fabric
 QUANT="" # -q leave empty if you do not want quantization
 #BIT_FLIP="-e" # -e leave empty if you do not want bit flip model. NOTE: -q MUST BE ENABLED TOO WITH THIS
 TRAINSET="" # -r. leave empty if using testset
-WORKERS=16
+WORKERS=8
 
 if [[ ${FORMAT} -eq "INT" ]]
 then
@@ -76,7 +78,7 @@ echo "!===================================!"
 echo -n "Preprocessing ... "
 if [[ ! -f "$RANGES_FILE" ]]
 then
-    python3 ${SCRIPT1} -b ${BATCH} -n ${NETWORK} -d ${DATASET} -o ${OUTPUT_PATH} ${TRAINSET} ${VERBOSE} ${DEBUG} -w ${WORKERS} -P ${PRECISION} -f ${FORMAT}
+    python3 ${SCRIPT1} -b ${BATCH} -n ${NETWORK} -d ${DATASET} -o ${OUTPUT_PATH} ${TRAINSET} ${VERBOSE} ${DEBUG} -w ${WORKERS} -P ${PRECISION} -f ${FORMAT} -C ${CUDA} -k ${NBLOCKS}
     echo "Complete!"
 else
     echo "Skipped."
@@ -84,6 +86,6 @@ fi
 
 # profiling
 echo -n "Profiling ... "
-python3 ${SCRIPT2} -b ${BATCH} -n ${NETWORK} -d ${DATASET} -o ${OUTPUT_PATH} ${TRAINSET} ${VERBOSE} ${DEBUG} -w ${WORKERS} -P ${PRECISION} -f ${FORMAT} -B ${BITWIDTH} -R ${RADIX} ${BIAS} ${QUANT} -v
-python3 ${SCRIPT3} -b ${BATCH} -n ${NETWORK} -d ${DATASET} -o ${OUTPUT_PATH} ${TRAINSET} ${VERBOSE} ${DEBUG} -w ${WORKERS} -P ${PRECISION} -f ${FORMAT} -B ${BITWIDTH} -R ${RADIX} ${BIAS} ${QUANT}
+python3 ${SCRIPT2} -b ${BATCH} -n ${NETWORK} -d ${DATASET} -o ${OUTPUT_PATH} ${TRAINSET} ${VERBOSE} ${DEBUG} -w ${WORKERS} -P ${PRECISION} -f ${FORMAT} -B ${BITWIDTH} -R ${RADIX} ${BIAS} ${QUANT} -C ${CUDA} -k ${NBLOCKS} -v
+python3 ${SCRIPT3} -b ${BATCH} -n ${NETWORK} -d ${DATASET} -o ${OUTPUT_PATH} ${TRAINSET} ${VERBOSE} ${DEBUG} -w ${WORKERS} -P ${PRECISION} -f ${FORMAT} -B ${BITWIDTH} -R ${RADIX} ${BIAS} ${QUANT} -C ${CUDA} -k ${NBLOCKS} 
 echo "Complete!"

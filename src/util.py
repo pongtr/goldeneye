@@ -10,7 +10,8 @@ import torchvision.models as models
 import timm
 import numpy as np
 from num_sys_class import *
-from othermodels import resnet, vgg, cifar10_nn
+from othermodels import resnet
+# from othermodels import resnet, vgg, cifar10_nn
 
 '''
 Environment Variables
@@ -32,6 +33,7 @@ injectionsLoc_in = 0
 radix_in = -1
 bitwidth_in = 32
 bias_in = None
+nblocks_in = None
 workers_in = -1
 training_in = False
 quantize_in = False
@@ -105,6 +107,11 @@ def check_args(args=None):
                         type=int,
                         default=None)
 
+    parser.add_argument('-k', '--nblocks',
+                        help='Number of blocks in MX number format',
+                        type=int,
+                        default=None)
+
     parser.add_argument('-r', '--training',
                         help='When enabled, this is training data. When disabled, this is testing data',
                         type=str2bool,
@@ -148,7 +155,7 @@ def check_args(args=None):
     results = parser.parse_args(args)
 
     global batchsize_in, dnn_in, dataset_in, format_in, precision_in, output_in, cuda_in, \
-        bitwidth_in, radix_in, bias_in, \
+        bitwidth_in, radix_in, bias_in, nblocks_in, \
         injections_in, injectionsLoc_in, training_in, workers_in, quantize_in, \
         verbose_in, debug_in
     # global singlebitflip_in
@@ -165,6 +172,7 @@ def check_args(args=None):
     radix_in = results.radix
     bitwidth_in = results.bitwidth
     bias_in = results.bias
+    nblocks_in = results.nblocks
     training_in = results.training
     workers_in = results.workers
     quantize_in = results.quantize
@@ -192,6 +200,7 @@ def getInjectionsLocation(): return injectionsLoc_in
 def getRadix(): return radix_in
 def getBitwidth(): return bitwidth_in
 def getBias(): return bias_in
+def getNblocks(): return nblocks_in # number of element blocks in mx format
 def getTraining_en(): return training_in
 def getWorkers(): return workers_in
 def getQuantize_en(): return quantize_in
@@ -603,7 +612,7 @@ def load_file(file_name, compress = True):
 #################################################################
 ################### HELPER METHODS FOR NUMSYS ###################
 #################################################################
-def getNumSysName(name, bits=16, radix_up=5, radix_down=10, bias=None):
+def getNumSysName(name, bits=16, radix_up=5, radix_down=10, bias=None, n_blocks=None):
     # common number systems in PyTorch
     if name == "fp32":
         return num_fp32(), name
@@ -624,6 +633,8 @@ def getNumSysName(name, bits=16, radix_up=5, radix_down=10, bias=None):
         return block_fp(bit_width=bits, exp_len=radix_up, mant_len=radix_down), name
     elif name == "adaptive_fp":
         return adaptive_float(bit_width=bits, exp_len=radix_up, mant_len=radix_down, exp_bias=bias), name
+    elif name == "mx_fp":
+        return mx_float(bit_width=bits, exp_len=radix_up, mant_len=radix_down, n_blocks=n_blocks), name
 
     else:
         sys.exit("Number format not supported")
