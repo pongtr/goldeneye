@@ -211,3 +211,24 @@ def test_mx_float():
         atol=0.0001
     ))  
     
+def test_fpn():
+    # 1. small numbers
+    test1 = torch.tensor([[-1.17,  2.71, -1.60,  0.43],
+                          [-1.14,  2.05,  1.01,  0.07],
+                          [ 0.16, -0.03, -0.89, -0.87],
+                          [-0.04, -0.39,  0.64, -2.89]])
+
+    # 2. large numbers
+    test2 = torch.tensor([[ 997.481,  188.034, -147.376, -277.766],
+                          [-617.844, -755.696,   18.283,  670.539],
+                          [-709.682, -841.260,  300.587,  837.047],
+                          [ 347.082,   98.871, -775.379,  709.284]])
+    
+    fp4 = num_float_n(
+        exp_len=3,
+        mant_len=2
+    )
+    # TODO: FIx this. it is still wrong
+    out = fp4.real_to_format_tensor(test1)
+    print(out)
+    assert(1+1==3)

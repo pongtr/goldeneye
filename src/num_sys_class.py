@@ -14,6 +14,79 @@ num_sys = load(
     ]
 )
 
+def float_quantize(float_value, man=23, exp=8):
+    # Define scale and range for mantissa and exponent
+    mantissa_range = 2 ** man
+    exponent_range = 2 ** exp
+
+    # Extract mantissa and exponent
+    exponent = torch.floor(torch.log2(torch.abs(float_value)))
+    mantissa = float_value / (2.0 ** exponent)
+
+    # Ensure leading 1 in mantissa
+    mantissa = torch.sign(mantissa) * torch.abs(mantissa)  # Ensure positive mantissa
+    mantissa *= 0.5  # Scale mantissa to have leading 1
+
+    # Quantize mantissa
+    quantized_mantissa = torch.round(mantissa * mantissa_range) / mantissa_range
+    quantized_mantissa = quantized_mantissa * 2. # account for leading 1
+
+    # Compute exponent adjustment
+    max_exponent = 2 ** (exp - 1) - 1
+    exponent_adjustment = torch.clamp(exponent, -max_exponent, max_exponent)
+    
+    # Quantize exponent
+    quantized_exponent = torch.round(exponent_adjustment * exponent_range) / exponent_range
+    
+    # print(quantized_exponent, quantized_mantissa)
+
+    return quantized_mantissa * 2.0 ** quantized_exponent
+
+def float_quantize2(tensor, man=23, exp=8):
+    sign = torch.sign(tensor)
+    float_arr = torch.abs(tensor)
+    
+    mant, exp = torch.frexp(float_arr)
+    print(mant)
+    
+    # new mantissa
+    mant = 2 * mant
+    scale = 2 ** (-man)
+    mant = ((mant / scale).round()) * scale
+    
+    print(scale)
+    print(mant)
+    
+    return sign * mant * 2. ** (exp - 1)
+    
+    
+def float_quantize1(tensor, man=4, exp=4):
+    # Define scale and range for mantissa and exponent
+    mantissa_range = 2 ** man # 2^1=2
+    exponent_range = 2 ** exp # 2^2=4
+
+    # Extract mantissa and exponent
+    sign = torch.sign(tensor)
+    exponent = torch.floor(torch.log2(torch.abs(tensor)))
+    mantissa = torch.abs(tensor) / (2.0 ** exponent)
+    print(mantissa * 2**exponent)
+
+    # Ensure leading zero in mantissa
+    mantissa *= 2  # Scale mantissa to have leading zero
+
+    # Quantize mantissa
+    quantized_mantissa = torch.round(mantissa * (mantissa_range - 1))
+
+    # Compute exponent adjustment
+    max_exponent = 2 ** (exp - 1) - 1
+    exponent_adjustment = torch.clamp(exponent, -max_exponent, max_exponent)
+    
+    # Quantize exponent
+    quantized_exponent = torch.round(exponent_adjustment * (exponent_range - 1))
+
+    print(quantized_exponent, quantized_mantissa)
+
+    return sign * quantized_mantissa * 2 ** quantized_exponent
 
 class _number_sys:
     """
@@ -640,8 +713,7 @@ class mx_float(_ieee754):
                 # Store scale like this for easy multiplication
                 # Actual implementation only stores scale once per block
                 scale[j] = shared_exp 
-        
-            
+                    
         float_out = sign * mant * (2 ** (scale + exp))
         
         # Reconstruct the tensor
